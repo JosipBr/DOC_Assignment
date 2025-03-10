@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: via.doc1.spring_boot_docker_app1.SpringBootDockerApp1ApplicationTests
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.558 s -- in via.doc1.spring_boot_docker_app1.SpringBootDockerApp1ApplicationTests

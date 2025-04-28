@@ -1,0 +1,63 @@
+name: CD - Deploy to Minikube using Github Actions
+
+on:
+  # Trigger the workflow on push from the master/main branch or on pull request
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Build job
+  job1:
+    name: Build and Deploy to Minikube
+    # Run on Ubuntu using the latest version
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Start Minikube
+      - name: Start Minikube
+        id: minikube
+        uses: medyagh/setup-minikube@latest
+
+      # Try the cluster to see if it's working
+      - name: Try the cluster!
+        run: kubectl get pods -A
+
+      # Build the Docker image for the app
+      - name: Build Image
+        run: |
+          export SHELL=/bin/bash
+          eval $(minikube -p minikube docker-env)
+          docker build -f ./Dockerfile -t local/cicd-example .
+          echo -n "Verifying images: "
+          docker images
+
+      # Deploy the app and database to Minikube
+      - name: Deploy to Minikube
+        run: |
+          kubectl apply -f deploy.yaml
+          kubectl wait --for=condition=Ready pod -l app=db
+          kubectl wait --for=condition=Ready pod -l app=cicd-example
+          kubectl get all
+
+      # Test service URLs
+      - name: Test service URLs
+        run: |
+          echo "SERVICE_URL=$(minikube service db --url)"
+          kubectl port-forward service/db 5434:5434 &> /dev/null &
+          sleep 5
+          kubectl port-forward service/db 5434:5434 &> /dev/null &
+      
+      # Test the app endpoint
+      - run: |
+          curl -i http://localhost:8080/
+
+      # Cleanup Minikube after the process
+      - name: Cleanup
+        run: |
+          eval $(minikube docker-env -u)
+          minikube delete
